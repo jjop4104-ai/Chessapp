@@ -10,7 +10,6 @@ import android.view.View
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams as LP
 import android.view.inputmethod.InputMethodManager
-import android.widget.Toast
 
 class OverlayService : Service() {
     private lateinit var wm: WindowManager
@@ -18,9 +17,11 @@ class OverlayService : Service() {
     private lateinit var panel: View
     private lateinit var arrowLp: LP
     private lateinit var panelLp: LP
+    private lateinit var coach: Coach
     override fun onBind(i: Intent?): IBinder? = null
     private fun lp(w: Int, h: Int, flags: Int) =
         LP(w, h, LP.TYPE_APPLICATION_OVERLAY, flags, PixelFormat.TRANSLUCENT)
+
     override fun onCreate() {
         super.onCreate()
         startAsForeground()
@@ -32,18 +33,15 @@ class OverlayService : Service() {
                 LP.FLAG_LAYOUT_IN_SCREEN or LP.FLAG_LAYOUT_NO_LIMITS
         )
         wm.addView(arrow, arrowLp)
+        coach = Coach(this, arrow)
         panel = OverlayPanel(
             this,
             onDrag = { dx, dy ->
                 panelLp.x += dx; panelLp.y += dy
                 wm.updateViewLayout(panel, panelLp)
             },
-            onShow = { text ->
-                if (!arrow.showMove(text)) {
-                    Toast.makeText(this, "Формат: e2e4", Toast.LENGTH_SHORT).show()
-                }
-            },
-            onClear = { arrow.move = null },
+            onShow = { text -> coach.move(text) },
+            onClear = { coach.reset() },
             onCalib = { toggleCalib() },
             onFlip = { arrow.flipped = !arrow.flipped; arrow.invalidate() },
             onQuit = { stopSelf() },
